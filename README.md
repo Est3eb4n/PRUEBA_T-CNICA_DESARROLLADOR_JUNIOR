@@ -168,7 +168,3 @@ Exportación de datos
 
 Pruebas unitarias y de integración
 
-### Diagrama SQL
-
-<img width="1510" height="607" alt="image" src="https://github.com/user-attachments/assets/2f341938-812e-44b6-8baf-364d1d02c8b9" />
-
