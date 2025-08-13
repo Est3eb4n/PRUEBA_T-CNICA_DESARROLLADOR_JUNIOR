@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Ventas</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Agrega Bootstrap para los estilos que espera tu JS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <header>
+        <h1>Sistema de Ventas</h1>
+        <nav>
+            <button class="tab-button active" data-tab="sellers">Vendedores</button>
+            <button class="tab-button" data-tab="products">Productos</button>
+            <button class="tab-button" data-tab="sales">Ventas</button>
+        </nav>
+    </header>
+
+    <!-- Contenedor de errores -->
+    <div id="error-container" class="alert alert-danger" style="display: none; margin: 20px;"></div>
+    
+    <!-- Indicador de carga -->
+    <div id="loading-indicator" class="spinner-border text-primary" role="status" style="display: none; position: fixed; top: 20px; right: 20px;">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+
+    <main>
+        <!-- Sección Vendedores -->
+        <section id="sellers" class="tab-content active">
+            <h2>Gestión de Vendedores</h2>
+            <div class="form-container">
+                <form id="seller-form">
+                    <input type="hidden" id="seller-id" name="id">
+                    <div class="form-group">
+                        <label for="seller-name">Nombre:</label>
+                        <input type="text" id="seller-name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="seller-email">Email:</label>
+                        <input type="email" id="seller-email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="seller-phone">Teléfono:</label>
+                        <input type="text" id="seller-phone" name="phone">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-save" id="submit-btn">Guardar</button>
+                        <button type="button" class="btn-cancel" id="cancel-edit" style="display: none;">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+            <div class="table-container">
+                <div id="sellers-list"></div>
+            </div>
+        </section>
+
+        <!-- Sección Productos -->
+        <section id="products" class="tab-content">
+            <h2>Gestión de Productos</h2>
+            <div class="form-container">
+                <form id="product-form">
+                    <input type="hidden" id="product-id" name="id">
+                    <div class="form-group">
+                        <label for="product-name">Nombre:</label>
+                        <input type="text" id="product-name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-price">Precio:</label>
+                        <input type="number" id="product-price" name="price" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-stock">Stock:</label>
+                        <input type="number" id="product-stock" name="stock" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-description">Descripción:</label>
+                        <textarea id="product-description" name="description"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-save" id="submit-btn">Guardar</button>
+                        <button type="button" class="btn-cancel" id="cancel-edit" style="display: none;">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+            <div class="table-container">
+                <table id="products-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th>Descripción</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Sección Ventas -->
+        <section id="sales" class="tab-content">
+            <h2>Gestión de Ventas</h2>
+            <div class="form-container">
+                <form id="sale-form">
+                    <div class="form-group">
+                        <label for="sale-seller">Vendedor:</label>
+                        <select id="sale-seller" name="seller_id" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="sale-product">Producto:</label>
+                        <select id="sale-product" name="product_id" required></select>
+                        <div>
+                            <small>Precio: $<span id="product-price">0.00</span></small>
+                            <small>Stock: <span id="product-stock">0</span></small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="sale-quantity">Cantidad:</label>
+                        <input type="number" id="sale-quantity" name="quantity" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Total:</label>
+                        <span id="total-price">$0.00</span>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-save">Guardar</button>
+                        <button type="button" class="btn-cancel">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+            <div class="table-container">
+                <table id="sales-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Vendedor</th>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Total</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Carga de scripts (sin duplicados) -->
+    <script type="module" src="js/api.js"></script>
+    <script type="module" src="js/sellers.js"></script>
+    <script type="module" src="js/products.js"></script>
+    <script type="module" src="js/sales.js"></script>
+    
+    <script>
+        // Manejo de pestañas
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.tab-button, .tab-content').forEach(el => {
+                    el.classList.remove('active');
+                });
+                button.classList.add('active');
+                const tabId = button.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>
