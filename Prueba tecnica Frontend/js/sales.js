@@ -1,25 +1,30 @@
 import { ApiClient } from './api.js';
 
 class SalesUI {
-  constructor() {
-    this.apiClient = new ApiClient();
-    this.saleForm = document.getElementById('sale-form');
-    this.salesTable = document.getElementById('sales-table')?.querySelector('tbody');
-    this.errorContainer = document.getElementById('error-container');
-    this.loadingIndicator = document.getElementById('loading-indicator');
-    this.sellersDropdown = document.getElementById('sale-seller');
-    this.productsDropdown = document.getElementById('sale-product');
-    this.productPriceElement = document.getElementById('product-price');
-    this.productStockElement = document.getElementById('product-stock');
-    this.totalPriceElement = document.getElementById('total-price');
+constructor() {
+  this.apiClient = new ApiClient();
+  this.saleForm = document.getElementById('sale-form');
+  this.salesTable = document.getElementById('sales-table')?.querySelector('tbody');
+  this.errorContainer = document.getElementById('error-container');
+  this.loadingIndicator = document.getElementById('loading-indicator');
+  this.sellersDropdown = document.getElementById('sale-seller');
+  this.productsDropdown = document.getElementById('sale-product');
+  this.productPriceElement = document.getElementById('product-price');
+  this.productStockElement = document.getElementById('product-stock');
+  this.totalPriceElement = document.getElementById('total-price');
 
-    if (!this.checkRequiredElements()) {
-      console.error('Error: Elementos críticos del DOM no encontrados en SalesUI');
-      return;
-    }
-
-    this.init();
+  // Verificación mejorada de elementos
+  if (!this.checkRequiredElements()) {
+    console.error('Elementos críticos no encontrados');
+    this.showError('Error al inicializar el módulo de ventas');
+    return;
   }
+
+  // Inicializar con valores por defecto
+  this.resetProductInfo();
+  
+  this.init();
+}
 
   checkRequiredElements = () => {
     const requiredElements = [
@@ -92,7 +97,7 @@ class SalesUI {
 
     try {
       const response = await this.apiClient.fetchSales();
-      
+
       if (!response.data || response.data.length === 0) {
         this.salesTable.innerHTML = `
           <tr>
@@ -130,67 +135,97 @@ class SalesUI {
     }
   }
 
-  loadFormData = async () => {
-    this.showLoading(true);
-    this.clearError();
+loadFormData = async () => {
+  this.showLoading(true);
+  this.clearError();
 
+  try {
+    const [sellersResponse, productsResponse] = await Promise.all([
+      this.apiClient.fetchSellers(),
+      this.apiClient.fetchProducts()
+    ]);
+
+    // Validar respuestas
+    if (!productsResponse?.data || productsResponse.data.length === 0) {
+      throw new Error('No hay productos disponibles');
+    }
+
+    if (!sellersResponse?.data || sellersResponse.data.length === 0) {
+      throw new Error('No hay vendedores disponibles');
+    }
+
+    // Llenar dropdowns
+    this.populateSellersDropdown(sellersResponse.data);
+    this.populateProductsDropdown(productsResponse.data);
+
+    // Actualizar información inicial
+    this.updateProductInfo();
+
+  } catch (error) {
+    console.error('Error en loadFormData:', error);
+    this.showError(`Error al cargar datos: ${this.getUserFriendlyError(error)}`);
+    this.resetProductInfo();
+  } finally {
+    this.showLoading(false);
+  }
+}
+
+populateSellersDropdown = (sellers) => {
+  if (!this.sellersDropdown) return;
+  
+  this.sellersDropdown.innerHTML = sellers.map(seller => `
+    <option value="${seller.id}">${seller.name}</option>
+  `).join('');
+}
+
+populateProductsDropdown = (products) => {
+  if (!this.productsDropdown) return;
+  
+  this.productsDropdown.innerHTML = products.map(product => {
+    const price = product.price || 0;
+    const stock = product.stock || 0;
+    
+    return `
+      <option value="${product.id}" 
+              data-price="${price}" 
+              data-stock="${stock}">
+        ${product.name} ($${price.toFixed(2)})
+      </option>
+    `;
+  }).join('');
+}
+
+  updateProductInfo = () => {
     try {
-      const [sellersResponse, productsResponse] = await Promise.all([
-        this.apiClient.fetchSellers(),
-        this.apiClient.fetchProducts()
-      ]);
-
-      // Llenar dropdown de vendedores
-      if (this.sellersDropdown) {
-        this.sellersDropdown.innerHTML = sellersResponse.data.map(seller => `
-          <option value="${seller.id}">${seller.name}</option>
-        `).join('');
+      // Verificar que el dropdown exista y tenga opciones
+      if (!this.productsDropdown || this.productsDropdown.options.length === 0) {
+        console.warn('Dropdown de productos no disponible o vacío');
+        this.resetProductInfo();
+        return;
       }
 
-      // Llenar dropdown de productos
-      if (this.productsDropdown) {
-        this.productsDropdown.innerHTML = productsResponse.data.map(product => `
-          <option value="${product.id}" 
-                  data-price="${product.price}" 
-                  data-stock="${product.stock}">
-            ${product.name} ($${product.price.toFixed(2)})
-          </option>
-        `).join('');
+      // Obtener la opción seleccionada de manera segura
+      const selectedIndex = this.productsDropdown.selectedIndex;
+      const selectedProduct = selectedIndex >= 0
+        ? this.productsDropdown.options[selectedIndex]
+        : null;
+
+      if (!selectedProduct || !selectedProduct.dataset) {
+        console.warn('Producto seleccionado no válido');
+        this.resetProductInfo();
+        return;
       }
 
-      // Actualizar información del producto seleccionado
-      await this.updateProductInfo();
+      // Obtener precio y stock con valores por defecto
+      const price = parseFloat(selectedProduct.dataset.price) || 0;
+      const stock = parseInt(selectedProduct.dataset.stock) || 0;
+
+      // Actualizar UI
+      this.updateProductUI(price, stock);
 
     } catch (error) {
-      this.showError(`Error al cargar datos del formulario: ${this.getUserFriendlyError(error)}`);
-      console.error('Error loading form data:', error);
-    } finally {
-      this.showLoading(false);
-    }
-  }
-
-  updateProductInfo = async () => {
-    if (!this.productsDropdown) return;
-
-    const selectedProduct = this.productsDropdown.options[this.productsDropdown.selectedIndex];
-    const price = parseFloat(selectedProduct.dataset.price);
-    const stock = parseInt(selectedProduct.dataset.stock);
-
-    if (this.productPriceElement) {
-      this.productPriceElement.textContent = price.toFixed(2);
-    }
-    
-    if (this.productStockElement) {
-      this.productStockElement.textContent = stock;
-    }
-    
-    // Actualizar cantidad máxima
-    const quantityInput = document.getElementById('sale-quantity');
-    if (quantityInput) {
-      quantityInput.max = stock;
-      if (parseInt(quantityInput.value) > stock) {
-        quantityInput.value = stock;
-      }
+      console.error('Error en updateProductInfo:', error);
+      this.resetProductInfo();
     }
   }
 
@@ -201,7 +236,7 @@ class SalesUI {
     const quantity = parseInt(quantityInput.value) || 0;
     const price = parseFloat(this.productPriceElement.textContent) || 0;
     const total = quantity * price;
-    
+
     this.totalPriceElement.textContent = total.toFixed(2);
   }
 
@@ -253,7 +288,7 @@ class SalesUI {
     successElement.className = 'alert alert-success';
     successElement.textContent = message;
     document.body.appendChild(successElement);
-    
+
     setTimeout(() => {
       successElement.remove();
     }, 3000);
@@ -270,13 +305,44 @@ class SalesUI {
     if (error.message.includes('No se pudo conectar con el servidor')) {
       return 'No se pudo conectar con el servidor. Verifique su conexión a internet.';
     }
-    
+
     if (error.code === 'INSUFFICIENT_STOCK') {
       return error.message;
     }
-    
+
     return error.message || 'Error desconocido';
   }
+
+  resetProductInfo = () => {
+  if (this.productPriceElement) this.productPriceElement.textContent = '0.00';
+  if (this.productStockElement) this.productStockElement.textContent = '0';
+  
+  const quantityInput = document.getElementById('sale-quantity');
+  if (quantityInput) {
+    quantityInput.max = 0;
+    quantityInput.value = 0;
+  }
+  
+  if (this.totalPriceElement) this.totalPriceElement.textContent = '0.00';
+}
+
+updateProductUI = (price, stock) => {
+  if (this.productPriceElement) {
+    this.productPriceElement.textContent = price.toFixed(2);
+  }
+  
+  if (this.productStockElement) {
+    this.productStockElement.textContent = stock;
+  }
+  
+  const quantityInput = document.getElementById('sale-quantity');
+  if (quantityInput) {
+    quantityInput.max = stock;
+    if (parseInt(quantityInput.value) > stock) {
+      quantityInput.value = stock;
+    }
+  }
+}
 }
 
 document.addEventListener('DOMContentLoaded', () => {
