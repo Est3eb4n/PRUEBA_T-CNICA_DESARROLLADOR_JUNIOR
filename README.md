@@ -170,4 +170,5 @@ Pruebas unitarias y de integración
 
 ### Diagrama SQL
 
-<img width="6624" height="2947" alt="image" src="https://github.com/user-attachments/assets/119b6c27-a250-4639-82c7-b10a3fc94aa0" />
+<img width="1510" height="607" alt="image" src="https://github.com/user-attachments/assets/2f341938-812e-44b6-8baf-364d1d02c8b9" />
+
